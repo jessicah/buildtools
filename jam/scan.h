@@ -35,7 +35,7 @@ typedef struct _YYSTYPE {
 	int		type;
 	const char	*string;
 	PARSE		*parse;
-	LIST		*list;
+	StringList list;
 	int		number;
 } YYSTYPE;
 

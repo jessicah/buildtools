@@ -66,9 +66,9 @@ static void var_edit_shift( char *out, VAR_EDITS *edits );
  * Returns a newly created list.
  */
 
-LIST *
+StringList
 var_expand( 
-	LIST		*l,
+	StringList l,
 	const char 	*in,
 	const char 	*end,
 	LOL		*lol,
@@ -91,11 +91,11 @@ var_expand(
 	    {
 	    case '1':
 	    case '<':
-		return list_copy( l, lol_get( lol, 0 ) );
+		return l.AppendList(lol_get(lol, 0));
 
 	    case '2':
 	    case '>':
-		return list_copy( l, lol_get( lol, 1 ) );
+		return l.AppendList(lol_get(lol, 1));
 	    }
 	}
 
@@ -114,9 +114,9 @@ var_expand(
 	*out = '\0';
 
 	if( cancopyin )
-	    return list_new( l, inp, 1 );
+	    return l.Append(inp);
 	else
-	    return list_new( l, out_buf, 0 );
+	    return l.Append(out_buf);
 
     expand:
 	/*
@@ -179,24 +179,24 @@ var_expand(
 	 */
 
 	{
-	    LIST *variables = 0;
-	    LIST *remainder = 0;
-	    LIST *vars;
+	    StringList variables = {};
+	    StringList remainder = {};
 
 	    /* Recursively expand variable name & rest of input */
 
 	    if( out < ov )
-		variables = var_expand( L0, out, ov, lol, 0 );
+		variables = var_expand( {}, out, ov, lol, 0 );
 	    if( in < end )
-		remainder = var_expand( L0, in, end, lol, 0 );
+		remainder = var_expand( {}, in, end, lol, 0 );
 
 	    /* Now produce the result chain */
 
 	    /* For each variable name */
 
-	    for( vars = variables; vars; vars = list_next( vars ) )
+	    for( size_t offset = 0; offset < variables.Size(); ++offset )
 	    {
-		LIST *value, *evalue = 0;
+		StringList value = {};
+		StringList evalue = {};
 		char *colon;
 		char *bracket;
 		char varname[ MAXSYM ];
@@ -206,7 +206,7 @@ var_expand(
 		/* Look for a : modifier in the variable name */
 		/* Must copy into varname so we can modify it */
 
-		size_t varname_len = strlen(vars->string);
+		size_t varname_len = variables.StringAt(offset).size();
 		if( varname_len > MAXSYM )
 		{
 		    printf( "MAXSYM is too low! Need at least %zu\n",
@@ -214,7 +214,7 @@ var_expand(
 		    exit( -1 );
 		}
 
-		strcpy( varname, vars->string );
+		strcpy( varname, variables.CStringAt(offset) );
 
 		if( colon = strchr( varname, MAGIC_COLON ) )
 		{
@@ -261,13 +261,14 @@ var_expand(
 
 		if( out == out_buf && !bracket && !colon && in == end )
 		{
-		    l = list_copy( l, value );
+		    l.AppendList(value);
 		    continue;
 		}
 
+#if 0
 		/* Handle start subscript */
 
-		while( sub1 > 0 && value )
+		while( sub1 > 0 && value.Size() > 0 )
 		    --sub1, value = list_next( value );
 
 		/* Empty w/ :E=default? */
@@ -338,28 +339,25 @@ var_expand(
 			l = list_new( l, out_buf, 0 );
 		    }
 		}
-
+#endif
 		/* Toss used empty */
 
-		if( evalue )
-		    list_free( evalue );
+		if( evalue.Size() > 0 )
+		    ;//list_free( evalue );
 	    }
 
 	    /* variables & remainder were gifts from var_expand */
 	    /* and must be freed */
 
-	    if( variables )
-		list_free( variables );
-	    if( remainder)
-		list_free( remainder );
+	    //if( variables. )
+		//list_free( variables );
+	    //if( remainder)
+		//list_free( remainder );
 
 	    if( DEBUG_VAREXP )
 	    {
-		printf( "expanded to " );
-		list_print( l );
-		printf( "\n" );
+			std::cout << "expanded to " << l << std::endl;
 	    }
-
 	    return l;
 	}
 }
@@ -462,7 +460,7 @@ var_edit_parse(
 		fp->ptr = "";
 		fp->len = 0;
 	    }
-	    else if( p = strchr( mods, MAGIC_COLON ) )
+	    else if( p = const_cast<char*>(strchr( mods, MAGIC_COLON )) )
 	    {
 		*p = 0;
 		fp->ptr = ++mods;

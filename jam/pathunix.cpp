@@ -282,7 +282,7 @@ normalize_path(const char *path, char *buffer, size_t bufferSize)
 	// components, and chopping off a component per ".."
 	while (pathLen > 0) {
 		// find component
-		char *separator = strchr(path, PATH_DELIM);
+		const char *separator = strchr(path, PATH_DELIM);
 		const char *component = path;
 		int componentLen = 0;
 		if (separator) {

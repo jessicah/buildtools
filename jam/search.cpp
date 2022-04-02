@@ -24,7 +24,7 @@ search(
 	time_t	*time )
 {
 	PATHNAME f[1];
-	LIST	*varlist;
+	StringList varlist;
 	char	buf[ MAXJPATH ];
 
 	/* Parse the filename */
@@ -34,10 +34,12 @@ search(
 	f->f_grist.ptr = 0;
 	f->f_grist.len = 0;
 
-	if( varlist = var_get( "LOCATE" ) )
+	if( (varlist = var_get( "LOCATE" )).Empty() == false )
 	{
-	    f->f_root.ptr = varlist->string;
-	    f->f_root.len = strlen( varlist->string );
+		printf("SEARCH: in `LOCATE`, %u items:\n", varlist.Size());
+		printf("  %s\n", varlist.CStringAt(0));
+	    f->f_root.ptr = varlist.CStringAt(0);
+	    f->f_root.len = varlist.StringAt(0).size();
 
 	    path_build( f, buf, 1 );
 
@@ -48,12 +50,12 @@ search(
 
 	    return newstr( buf );
 	}
-	else if( varlist = var_get( "SEARCH" ) )
+	else if( (varlist = var_get( "SEARCH" )).Empty() == false)
 	{
-	    while( varlist )
+		for (size_t offset = 0; offset < varlist.Size(); ++offset)
 	    {
-		f->f_root.ptr = varlist->string;
-		f->f_root.len = strlen( varlist->string );
+		f->f_root.ptr = varlist.CStringAt(offset);
+		f->f_root.len = varlist.StringAt(offset).size();
 
 		path_build( f, buf, 1 );
 
@@ -64,8 +66,6 @@ search(
 
 		if( *time )
 		    return newstr( buf );
-
-		varlist = list_next( varlist );
 	    }
 	}
 

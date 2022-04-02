@@ -42,19 +42,19 @@
 # include "regexp.h"
 # include "pathsys.h"
 
+#include <iostream>
+#include <stdlib.h>
+
 /*
  * compile_builtin() - define builtin rules
  */
 
-# define P0 (PARSE *)0
-# define C0 (char *)0
-
-LIST *builtin_depends( PARSE *parse, LOL *args, int *jmp );
-LIST *builtin_echo( PARSE *parse, LOL *args, int *jmp );
-LIST *builtin_exit( PARSE *parse, LOL *args, int *jmp );
-LIST *builtin_flags( PARSE *parse, LOL *args, int *jmp );
-LIST *builtin_glob( PARSE *parse, LOL *args, int *jmp );
-LIST *builtin_match( PARSE *parse, LOL *args, int *jmp );
+StringList builtin_depends( PARSE *parse, LOL *args, int *jmp );
+StringList builtin_echo( PARSE *parse, LOL *args, int *jmp );
+StringList builtin_exit( PARSE *parse, LOL *args, int *jmp );
+StringList builtin_flags( PARSE *parse, LOL *args, int *jmp );
+//StringList builtin_glob( PARSE *parse, LOL *args, int *jmp );
+StringList builtin_match( PARSE *parse, LOL *args, int *jmp );
 
 int glob( const char *s, const char *c );
 
@@ -63,54 +63,54 @@ load_builtins()
 {
     bindrule( "Always" )->procedure = 
     bindrule( "ALWAYS" )->procedure = 
-	parse_make( builtin_flags, P0, P0, P0, C0, C0, T_FLAG_TOUCHED );
+	parse_make( builtin_flags, nullptr, nullptr, nullptr, nullptr, nullptr, T_FLAG_TOUCHED );
 
     bindrule( "Depends" )->procedure = 
     bindrule( "DEPENDS" )->procedure = 
-	parse_make( builtin_depends, P0, P0, P0, C0, C0, 0 );
+	parse_make( builtin_depends, nullptr, nullptr, nullptr, nullptr, nullptr, 0 );
 
     bindrule( "echo" )->procedure = 
     bindrule( "Echo" )->procedure = 
     bindrule( "ECHO" )->procedure = 
-	parse_make( builtin_echo, P0, P0, P0, C0, C0, 0 );
+	parse_make( builtin_echo, nullptr, nullptr, nullptr, nullptr, nullptr, 0 );
 
     bindrule( "exit" )->procedure = 
     bindrule( "Exit" )->procedure = 
     bindrule( "EXIT" )->procedure = 
-	parse_make( builtin_exit, P0, P0, P0, C0, C0, 0 );
+	parse_make( builtin_exit, nullptr, nullptr, nullptr, nullptr, nullptr, 0 );
 
-    bindrule( "Glob" )->procedure = 
+    /*bindrule( "Glob" )->procedure = 
     bindrule( "GLOB" )->procedure = 
-	parse_make( builtin_glob, P0, P0, P0, C0, C0, 0 );
+	parse_make( builtin_glob, nullptr, nullptr, nullptr, nullptr, nullptr, 0 );*/
 
     bindrule( "Includes" )->procedure = 
     bindrule( "INCLUDES" )->procedure = 
-	parse_make( builtin_depends, P0, P0, P0, C0, C0, 1 );
+	parse_make( builtin_depends, nullptr, nullptr, nullptr, nullptr, nullptr, 1 );
 
     bindrule( "Leaves" )->procedure = 
     bindrule( "LEAVES" )->procedure = 
-	parse_make( builtin_flags, P0, P0, P0, C0, C0, T_FLAG_LEAVES );
+	parse_make( builtin_flags, nullptr, nullptr, nullptr, nullptr, nullptr, T_FLAG_LEAVES );
 
     bindrule( "Match" )->procedure = 
     bindrule( "MATCH" )->procedure = 
-	parse_make( builtin_match, P0, P0, P0, C0, C0, 0 );
+	parse_make( builtin_match, nullptr, nullptr, nullptr, nullptr, nullptr, 0 );
 
     bindrule( "NoCare" )->procedure = 
     bindrule( "NOCARE" )->procedure = 
-	parse_make( builtin_flags, P0, P0, P0, C0, C0, T_FLAG_NOCARE );
+	parse_make( builtin_flags, nullptr, nullptr, nullptr, nullptr, nullptr, T_FLAG_NOCARE );
 
     bindrule( "NOTIME" )->procedure = 
     bindrule( "NotFile" )->procedure = 
     bindrule( "NOTFILE" )->procedure = 
-	parse_make( builtin_flags, P0, P0, P0, C0, C0, T_FLAG_NOTFILE );
+	parse_make( builtin_flags, nullptr, nullptr, nullptr, nullptr, nullptr, T_FLAG_NOTFILE );
 
     bindrule( "NoUpdate" )->procedure = 
     bindrule( "NOUPDATE" )->procedure = 
-	parse_make( builtin_flags, P0, P0, P0, C0, C0, T_FLAG_NOUPDATE );
+	parse_make( builtin_flags, nullptr, nullptr, nullptr, nullptr, nullptr, T_FLAG_NOUPDATE );
 
     bindrule( "Temporary" )->procedure = 
     bindrule( "TEMPORARY" )->procedure = 
-	parse_make( builtin_flags, P0, P0, P0, C0, C0, T_FLAG_TEMP );
+	parse_make( builtin_flags, nullptr, nullptr, nullptr, nullptr, nullptr, T_FLAG_TEMP );
 }
 
 /*
@@ -121,19 +121,19 @@ load_builtins()
  * targets and sources as TARGETs.
  */
 
-LIST *
+StringList
 builtin_depends(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST *targets = lol_get( args, 0 );
-	LIST *sources = lol_get( args, 1 );
-	LIST *l;
+	StringList targets = lol_get( args, 0 );
+	StringList sources = lol_get( args, 1 );
+	StringList l;
 
-	for( l = targets; l; l = list_next( l ) )
+	for (size_t offset = 0; offset < targets.Size(); ++offset)
 	{
-	    TARGET *t = bindtarget( l->string );
+	    TARGET *t = bindtarget( targets[offset].get().c_str() );
 
 	    /* If doing INCLUDES, switch to the TARGET's include */
 	    /* TARGET, creating it if needed.  The internal include */
@@ -149,7 +149,7 @@ builtin_depends(
 	    t->depends = targetlist( t->depends, sources );
 	}
 
-	return L0;
+	return {};
 }
 
 /*
@@ -159,15 +159,15 @@ builtin_depends(
  * actions are taken.
  */
 
-LIST *
+StringList
 builtin_echo(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	list_print( lol_get( args, 0 ) );
-	printf( "\n" );
-	return L0;
+	std::cout << lol_get(args, 0) << std::endl;
+
+	return {};
 }
 
 /*
@@ -177,16 +177,16 @@ builtin_echo(
  * the program with a failure status.
  */
 
-LIST *
+StringList
 builtin_exit(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	list_print( lol_get( args, 0 ) );
-	printf( "\n" );
+	std::cout << lol_get(args, 0) << std::endl;
 	exit( EXITBAD ); /* yeech */
-	return L0;
+	
+	return {};
 }
 
 /*
@@ -196,27 +196,30 @@ builtin_exit(
  * by make0().  It binds each target as a TARGET.
  */
 
-LIST *
+StringList
 builtin_flags(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST *l = lol_get( args, 0 );
+	StringList l = lol_get( args, 0 );
 
-	for( ; l; l = list_next( l ) )
-	    bindtarget( l->string )->flags |= parse->num;
+	for(size_t offset = 0; offset < l.Size(); ++offset)
+	{
+		bindtarget( l[0].get().c_str() )->flags |= parse->num;
+	}
 
-	return L0;
+	return {};
 }
 
+#if 0
 /*
  * builtin_globbing() - GLOB rule
  */
 
 struct globbing {
-	LIST	*patterns;
-	LIST	*results;
+	const StringList &patterns;
+	StringList &results;
 } ;
 
 static void
@@ -265,30 +268,32 @@ builtin_glob(
 
 	return globbing.results;
 }
+#endif
 
 /*
  * builtin_match() - MATCH rule, regexp matching
  */
 
-LIST *
+StringList
 builtin_match(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-    LIST *l, *r;
-    LIST *result = 0;
+    StringList left = lol_get(args, 0);
+	StringList right = lol_get(args, 1);
+    StringList result;
 
     /* For each pattern */
 
-    for( l = lol_get( args, 0 ); l; l = l->next )
+	for(size_t leftOffset = 0; leftOffset < left.Size(); ++leftOffset)
     {
-	regexp *re = regcomp( l->string );
+	regexp *re = regcomp( left[leftOffset].get().c_str() );
 
 	/* For each string to match against */
 
-	for( r = lol_get( args, 1 ); r; r = r->next )
-	    if( regexec( re, r->string ) )
+	for( size_t rightOffset = 0; rightOffset < right.Size(); ++rightOffset)
+	    if( regexec( re, right[rightOffset].get().c_str() ) )
 	    {
 		int i, top;
 
@@ -311,7 +316,8 @@ builtin_match(
 		    }
 		    memcpy( buf, re->startp[i], l );
 		    buf[ l ] = 0;
-		    result = list_new( result, buf, 0 );
+		    //result = list_new( result, buf, 0 );
+			result.Append(buf);
 		}
 	    }
 

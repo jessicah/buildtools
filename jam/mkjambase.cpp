@@ -34,7 +34,7 @@ int main( int argc, char **argv, char **envp )
 
 	if( argc < 3 )
 	{
-	    fprintf( stderr, "usage: %s jambase.c Jambase ...\n", argv[0] );
+	    fprintf( stderr, "usage: %s jambase.cpp Jambase ...\n", argv[0] );
 	    return -1;
 	}
 
@@ -46,7 +46,7 @@ int main( int argc, char **argv, char **envp )
 
 	/* If the file ends in .c generate a C source file */
 
-	if( ( p = strrchr( argv[1], '.' ) ) && !strcmp( p, ".c" ) )
+	if( ( p = strrchr( argv[1], '.' ) ) && !strcmp( p, ".cpp" ) )
 	    doDotC++;
 
 	/* Now process the files */

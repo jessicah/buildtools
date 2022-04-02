@@ -27,9 +27,9 @@
 CMD *
 cmd_new(
 	RULE	*rule,
-	LIST	*targets,
-	LIST	*sources,
-	LIST	*shell,
+	StringList targets,
+	StringList sources,
+	StringList shell,
 	int	maxline )
 {
 	CMD *cmd = (CMD *)malloc( sizeof( CMD ) );
@@ -62,6 +62,6 @@ void
 cmd_free( CMD *cmd )
 {
 	lol_free( &cmd->args );
-	list_free( cmd->shell );
+	//list_free( cmd->shell );
 	free( (char *)cmd );
 }

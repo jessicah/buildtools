@@ -1,6 +1,6 @@
 # Makefile for jam
 
-CC = cc
+CXX = c++
 CFLAGS = -O
 EXENAME = ./jam0
 TARGET = -o $(EXENAME)
@@ -59,15 +59,22 @@ ifeq ($(HOST_SYSTEM), BeOS)
 endif
 
 SOURCES = \
-	builtins.c \
-	command.c compile.c execunix.c execvms.c expand.c \
-	filent.c fileos2.c fileunix.c filevms.c glob.c hash.c \
-	headers.c jam.c jambase.c jamgram.c lists.c make.c make1.c \
-	newstr.c option.c parse.c pathunix.c pathvms.c regexp.c \
-	rules.c scan.c search.c timestamp.c variable.c
+	builtins.cpp \
+	command.cpp compile.cpp execunix.cpp execvms.cpp expand.cpp \
+	filent.cpp fileos2.cpp fileunix.cpp filevms.cpp glob.cpp hash.cpp \
+	headers.cpp jam.cpp jambase.cpp jamgram.cpp lists.cpp make.cpp make1.cpp \
+	newstr.cpp option.cpp parse.cpp pathunix.cpp pathvms.cpp regexp.cpp \
+	rules.cpp scan.cpp search.cpp timestamp.cpp variable.cpp ninja.cpp
 
 all: $(EXENAME)
 	LINKLIBS=$(LINKLIBS) $(EXENAME)
 
 $(EXENAME):
-	$(CC) $(TARGET) $(CFLAGS) $(SOURCES) $(LINKLIBS)
+	$(CXX) $(TARGET) $(CFLAGS) $(SOURCES) $(LINKLIBS)
+
+clean:
+	rm -rf bin.linuxx86
+	rm jam0
+
+test:
+	bin.linuxx86/jam

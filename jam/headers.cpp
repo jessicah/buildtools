@@ -44,7 +44,7 @@
 #endif
 
 #ifndef OPT_HEADER_CACHE_EXT
-static LIST *headers1( const char *file, LIST *hdrscan );
+static StringList headers1( const char *file, StringList hdrscan );
 #endif
 
 /*
@@ -56,13 +56,13 @@ static LIST *headers1( const char *file, LIST *hdrscan );
 void
 headers( TARGET *t )
 {
-	LIST	*hdrscan;
-	LIST	*hdrrule;
-	LIST	*hdrcache;
+	StringList hdrscan;
+	StringList hdrrule;
+	StringList hdrcache;
 	LOL	lol;
 
-	if( !( hdrscan = var_get( "HDRSCAN" ) ) || 
-	    !( hdrrule = var_get( "HDRRULE" ) ) )
+	if( ( hdrscan = var_get( "HDRSCAN" )).Size() == 0  || 
+	    ( hdrrule = var_get( "HDRRULE" )).Size() == 0 )
 	        return;
 
 	/* Doctor up call to HDRRULE rule */
@@ -73,17 +73,17 @@ headers( TARGET *t )
 
 	lol_init( &lol );
 
-	lol_add( &lol, list_new( L0, t->name, 1 ) );
+	lol_add( &lol, StringList(t->name) );
 #ifdef OPT_HEADER_CACHE_EXT
 	lol_add( &lol, hcache( t, hdrscan ) );
 #else
 	lol_add( &lol, headers1( t->boundname, hdrscan ) );
 #endif
 
-	if( lol_get( &lol, 1 ) )
+	if( lol_get( &lol, 1 ).Size() > 0 )
 	{
 	    int jmp = JMP_NONE;
-	    list_free( evaluate_rule( hdrrule->string, &lol, L0, &jmp ) );
+	    evaluate_rule( hdrrule.CStringAt(0), &lol, {}, &jmp );
 	}
 
 	/* Clean up */
@@ -96,28 +96,29 @@ headers( TARGET *t )
  */
 
 #ifdef OPT_HEADER_CACHE_EXT
-LIST *
+StringList
 #else
-static LIST *
+static StringList
 #endif
 headers1( 
 	const char *file,
-	LIST *hdrscan )
+	StringList hdrscan )
 {
 	FILE	*f;
 	int	i;
 	int	rec = 0;
-	LIST	*result = 0;
+	StringList result = {};
 	regexp	*re[ MAXINC ];
 	char	buf[ 1024 ];
 
 	if( !( f = fopen( file, "r" ) ) )
 	    return result;
 
-	while( rec < MAXINC && hdrscan )
+	size_t offset = 0;
+	while( rec < MAXINC && offset < hdrscan.Size() )
 	{
-	    re[rec++] = regcomp( hdrscan->string );
-	    hdrscan = list_next( hdrscan );
+	    re[rec++] = regcomp( hdrscan.CStringAt(offset) );
+		++offset;
 	}
 
 	while( fgets( buf, sizeof( buf ), f ) )
@@ -135,7 +136,7 @@ headers1(
 		}
 		memcpy( buf2, re[i]->startp[1], l );
 		buf2[ l ] = 0;
-		result = list_new( result, buf2, 0 );
+		result.Append(buf2);
 
 		if( DEBUG_HEADER )
 		    printf( "header found: %s\n", buf2 );

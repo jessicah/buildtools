@@ -8,4 +8,4 @@
 
 void hcache_init(void);
 void hcache_done(void);
-LIST *hcache(TARGET *t, LIST *hdrscan);
+StringList hcache(TARGET *t, StringList hdrscan);

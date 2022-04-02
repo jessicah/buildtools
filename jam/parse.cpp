@@ -57,7 +57,8 @@ parse_file( const char *f )
 
 	    /* Run the parse tree. */
 
-	    list_free( (*(p->func))( p, &l, &jmp ) );
+	    //list_free( (*(p->func))( p, &l, &jmp ) );
+		(*(p->func))( p, &l, &jmp );
 
 	    parse_free( p );
 
@@ -74,7 +75,7 @@ parse_save( PARSE *p )
 
 PARSE *
 parse_make( 
-	LIST		*(*func)( PARSE *p, LOL *args, int *jmp ),
+	StringList (*func)( PARSE *p, LOL *args, int *jmp ),
 	PARSE		*left,
 	PARSE		*right,
 	PARSE		*third,

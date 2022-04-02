@@ -40,17 +40,116 @@
  * 12/09/02 (seiwald) - new list_printq() for writing lists to Jambase
  */
 
-/*
- * LIST - list of strings
- */
+#include <iostream>
+#include <vector>
+#include <string>
+#include <unordered_set>
 
-typedef struct _list LIST;
+#include "boost/flyweight.hpp"
+#include "boost/flyweight/set_factory.hpp"
+#include "boost/flyweight/no_locking.hpp"
+#include "boost/flyweight/no_tracking.hpp"
 
-struct _list {
-	LIST		*next;
-	LIST		*tail;		/* only valid in head node */
-	const char	*string;	/* private copy */
-} ;
+typedef boost::flyweights::flyweight<std::string,
+	boost::flyweights::set_factory<>,
+	boost::flyweights::no_locking,
+	boost::flyweights::no_tracking> atom;
+
+
+// probably don't use this
+#if 0
+const atom get_atom(const std::string str)
+{
+	atom _atom(std::move(str));
+
+	return _atom;
+}
+#endif
+
+
+class StringList {
+public:
+	StringList() {};
+
+	StringList(const std::string token) : StringList()
+	{
+		list.emplace_back(std::move(token));
+	}
+
+	StringList& Append(const std::string token)
+	{
+		list.emplace_back(std::move(token));
+
+		return *this;
+	}
+
+	StringList& AppendList(const StringList& otherList)
+	{
+		for (size_t offset = 0; offset < list.size(); ++offset)
+		{
+			list.push_back(otherList.list[offset]);
+		}
+
+		return *this;
+	}
+
+	StringList SubList(size_t start, size_t length) const
+	{
+		return { list, start, length };
+	}
+
+	StringList Copy() const
+	{
+		return { list, 0, list.size() };
+	}
+
+	const std::string& StringAt(size_t offset) const
+	{
+		return list[offset].get();
+	}
+
+	const char* CStringAt(size_t offset) const
+	{
+		return list[offset].get().c_str();
+	}
+
+	int Size() const { return list.size(); }
+
+	bool Empty() const { return list.size() == 0; }
+
+	const atom& operator[](size_t offset)
+	{
+		return list[offset];
+	}
+
+	friend std::ostream& operator<<(std::ostream &output, const StringList &stringList)
+	{
+		if (stringList.list.size() == 0)
+			return output;
+		
+		output << stringList.list[0];
+
+		for (size_t offset = 1; offset < stringList.list.size(); ++offset)
+		{
+			output << " " << stringList.list[offset];
+		}
+
+		return output;
+	}
+
+private:
+	StringList(const std::vector<atom> list, size_t offset, size_t length) : StringList()
+	{
+		this->list.resize(length);
+		for ( ; offset < length && offset < list.size(); ++offset)
+		{
+			this->list.emplace_back(list[offset]);
+		}
+	}
+
+	std::vector<atom> list;
+};
+
 
 /*
  * LOL - list of LISTs
@@ -62,9 +161,10 @@ typedef struct _lol LOL;
 
 struct _lol {
 	int	count;
-	LIST	*list[ LOL_MAX ];
+	StringList	list[ LOL_MAX ];
 } ;
 
+#if 0
 LIST *	list_append( LIST *l, LIST *nl );
 LIST *	list_copy( LIST *l, LIST  *nl );
 void	list_free( LIST *head );
@@ -72,13 +172,14 @@ LIST *	list_new( LIST *head, const char *string, int copy );
 void	list_print( LIST *l );
 int	list_length( LIST *l );
 LIST *	list_sublist( LIST *l, int start, int count );
+#endif
 
-# define list_next( l ) ((l)->next)
+//# define list_next( l ) ((l)->next)
 
-# define L0 ((LIST *)0)
+//# define L0 ((LIST *)0)
 
-void	lol_add( LOL *lol, LIST *l );
+void	lol_add( LOL *lol, StringList l );
 void	lol_init( LOL *lol );
 void	lol_free( LOL *lol );
-LIST *	lol_get( LOL *lol, int i );
+StringList&	lol_get( LOL *lol, int i );
 void	lol_print( LOL *lol );

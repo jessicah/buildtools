@@ -22,12 +22,12 @@ else 		{ LOCATE_TARGET ?= bin.$(OSFULL[1]:L) ; }
 # We have some different files for UNIX, VMS, and NT.
 #
 
-if $(NT) 	{ code = execunix.c filent.c pathunix.c ; } 
-else if $(MINGW) { code = execunix.c filent.c pathunix.c ; } 
-else if $(OS2)	{ code = execunix.c fileos2.c pathunix.c ; } 
-else if $(VMS) 	{ code = execvms.c filevms.c pathvms.c ; } 
-else if $(MAC)	{ code = execmac.c filemac.c pathmac.c ; }
-else 		{ code = execunix.c fileunix.c pathunix.c ; }
+if $(NT) 	{ code = execunix.cpp filent.cpp pathunix.cpp ; } 
+else if $(MINGW) { code = execunix.cpp filent.cpp pathunix.cpp ; } 
+else if $(OS2)	{ code = execunix.cpp fileos2.cpp pathunix.cpp ; } 
+else if $(VMS) 	{ code = execvms.cpp filevms.cpp pathvms.cpp ; } 
+else if $(MAC)	{ code = execmac.cpp filemac.cpp pathmac.cpp ; }
+else 		{ code = execunix.cpp fileunix.cpp pathunix.cpp ; }
 
 # For jam profiling/debugging.
 
@@ -57,8 +57,8 @@ if $(OS) = NT 			{ CCFLAGS += /DNT ; }
 # * jamfile caching
 # * definition of JAM_TARGETS variable
 #
-DEFINES += OPT_HEADER_CACHE_EXT ;
-DEFINES += OPT_JAMFILE_CACHE_EXT ;
+#DEFINES += OPT_HEADER_CACHE_EXT ;
+#DEFINES += OPT_JAMFILE_CACHE_EXT ;
 DEFINES += OPT_JAM_TARGETS_VARIABLE_EXT ;
 #
 ### LOCAL CHANGE
@@ -86,7 +86,7 @@ if $(OS) = BEOS {
 # Do we know yacc?
 
 if $(YACC) 	{ code += jamgram.y ; }
-else            { code += jamgram.c ; }
+else            { code += jamgram.cpp ; }
 
 #
 # Build the jamgram.y from the jamgram.yy
@@ -103,9 +103,9 @@ if $(YACC) && $(SUFEXE) = ""
 # 
 # These files contain locally developed improvements.
 #
-code += jcache.c ;
+code += jcache.cpp ;
 # code primarily not written locally, but grabbed from the net
-code += hcache.c ;
+code += hcache.cpp ;
 #
 ### LOCAL CHANGE
 
@@ -114,7 +114,7 @@ code += hcache.c ;
 # Include stat cache server under BeOS.
 #
 if $(OS) = BEOS {
-	code += beos_stat_cache.c ;
+	code += beos_stat_cache.cpp ;
 }
 #
 ### LOCAL CHANGE
@@ -123,7 +123,7 @@ if $(OS) = BEOS {
 # How to build the compiled in jambase.
 #
 
-Main		mkjambase : mkjambase.c ;
+Main		mkjambase : mkjambase.cpp ;
 
 if $(VMS)
 {
@@ -135,13 +135,16 @@ if $(VMS)
 if $(OS) = BEOS {
 }
 
+LINK = c++ ;
+
 #
 # The guts of the Jamfile: how to build Jam
 #
 
-Main 		jam : jam.c jambase.c ;
+
+Main 		jam : jam.cpp jambase.cpp ;
 LinkLibraries 	jam : libjam.a ;
-GenFile 	jambase.c : mkjambase Jambase ;
+GenFile 	jambase.cpp : mkjambase Jambase ;
 
 if $(OS) = BEOS {
 	local haveBone = [ GLOB /boot/develop/headers/be/bone/arpa : inet.h ] ;
@@ -155,10 +158,10 @@ if $(OS) = BEOS {
 }
 
 Library         libjam.a :
-		    builtins.c command.c compile.c $(code) expand.c
-		    glob.c hash.c headers.c lists.c make.c make1.c
-		    newstr.c option.c parse.c regexp.c rules.c scan.c
-		    search.c timestamp.c variable.c ;
+		    builtins.cpp command.cpp compile.cpp $(code) expand.cpp
+		    glob.cpp hash.cpp headers.cpp lists.cpp make.cpp make1.cpp
+		    newstr.cpp option.cpp parse.cpp regexp.cpp rules.cpp scan.cpp
+		    search.cpp timestamp.cpp variable.cpp ninja.cpp ;
 
 
 if $(BINDIR) 	{ InstallBin $(BINDIR) : jam ; }
@@ -222,16 +225,16 @@ if $(OS) = BEOS {
 
 ALLSOURCE =
 	Build.com Build.mpw Jam.html Jambase Jambase.html Jamfile
-	Jamfile.html Makefile Porting README RELNOTES builtins.c builtins.h
-	command.c command.h compile.c compile.h execcmd.h execmac.c
-	execunix.c execvms.c expand.c expand.h filemac.c filent.c
-	fileos2.c filesys.h fileunix.c filevms.c glob.c hash.c hash.h
-	headers.c headers.h jam.c jam.h jambase.c jambase.h jamgram.c
-	jamgram.h jamgram.y jamgram.yy jamgramtab.h lists.c lists.h
-	make.c make.h make1.c mkjambase.c newstr.c newstr.h option.c
-	option.h parse.c parse.h patchlevel.h pathmac.c pathsys.h
-	pathunix.c pathvms.c regexp.c regexp.h rules.c rules.h scan.c
-	scan.h search.c search.h timestamp.c timestamp.h variable.c
+	Jamfile.html Makefile Porting README RELNOTES builtins.cpp builtins.h
+	command.cpp command.h compile.cpp compile.h execcmd.h execmac.cpp
+	execunix.cpp execvms.cpp expand.cpp expand.h filemac.cpp filent.cpp
+	fileos2.cpp filesys.h fileunix.cpp filevms.cpp glob.cpp hash.cpp hash.h
+	headers.cpp headers.h jam.cpp jam.h jambase.cpp jambase.h jamgram.cpp
+	jamgram.h jamgram.y jamgram.yy jamgramtab.h lists.cpp lists.h
+	make.cpp make.h make1.cpp mkjambase.cpp newstr.cpp newstr.h option.cpp
+	option.h parse.cpp parse.h patchlevel.h pathmac.cpp pathsys.h
+	pathunix.cpp pathvms.cpp regexp.cpp regexp.h rules.cpp rules.h scan.cpp
+	scan.h search.cpp search.h timestamp.cpp timestamp.h variable.cpp
 	variable.h yyacc ;
 
 ### LOCAL CHANGE

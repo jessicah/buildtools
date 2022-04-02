@@ -42,16 +42,16 @@ struct _cmd
 	CMD	*next;
 	CMD	*tail;		/* valid on in head */
 	RULE	*rule;		/* rule->actions contains shell script */
-	LIST	*shell;		/* $(SHELL) value */
+	StringList shell;		/* $(SHELL) value */
 	LOL	args;		/* LISTs for $(<), $(>) */
 	char	buf[ MAXLINE ];	/* actual commands */
 } ;
 
 CMD *cmd_new(
 	RULE	*rule,		/* rule (referenced) */
-	LIST	*targets,	/* $(<) (freed) */
-	LIST	*sources,	/* $(>) (freed) */
-	LIST	*shell,		/* $(SHELL) (freed) */
+	StringList targets,	/* $(<) (freed) */
+	StringList sources,	/* $(>) (freed) */
+	StringList shell,		/* $(SHELL) (freed) */
 	int	maxline );	/* max line length */
 
 void cmd_free( CMD *cmd );

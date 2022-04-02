@@ -177,6 +177,8 @@ int main( int argc, char **argv, char **arg_environ )
 	int		anyhow = 0;
 	int		status;
 
+	static boost::flyweights::flyweight<std::string>::initializer fwinit;
+
 # ifdef OS_MAC
 	InitGraf(&qd.thePort);
 # endif
@@ -233,7 +235,7 @@ int main( int argc, char **argv, char **arg_environ )
 	if( ( s = getoptval( optv, 'j', 0 ) ) )
 	{
 	    globs.jobs = atoi( s );
-	    var_set( "JAMJOBS", list_new( L0, s, 0 ), VAR_SET );
+	    var_set( "JAMJOBS", StringList(s), VAR_SET );
 	}
 
 	if( ( s = getoptval( optv, 'g', 0 ) ) )
@@ -305,7 +307,7 @@ int main( int argc, char **argv, char **arg_environ )
 	    if( strlen( buf ) == 25 )
 		buf[ 24 ] = 0;
 
-	    var_set( "JAMDATE", list_new( L0, buf, 0 ), VAR_SET );
+	    var_set( "JAMDATE", StringList(buf), VAR_SET );
 	}
 
 	/* And JAMUNAME */
@@ -315,12 +317,12 @@ int main( int argc, char **argv, char **arg_environ )
 
 	    if( uname( &u ) >= 0 )
 	    {
-		LIST *l = L0;
-		l = list_new( l, u.machine, 0 );
-		l = list_new( l, u.version, 0 );
-		l = list_new( l, u.release, 0 );
-		l = list_new( l, u.nodename, 0 );
-		l = list_new( l, u.sysname, 0 );
+		StringList l = {};
+		l.Append(u.machine);
+		l.Append(u.version);
+		l.Append(u.release);
+		l.Append(u.nodename);
+		l.Append(u.sysname);
 		var_set( "JAMUNAME", l, VAR_SET );
 	    }
 	}
@@ -340,7 +342,7 @@ int main( int argc, char **argv, char **arg_environ )
 	/* define the variable JAM_TARGETS containing the targets specified on
 	   the command line */
 	{
-		LIST *l = L0;
+		StringList l = {};
 		int i;
 		char **targets = argv;
 		int targetCount = argc;
@@ -350,7 +352,7 @@ int main( int argc, char **argv, char **arg_environ )
 		}
 
 		for (i = 0; i < targetCount; i++)
-			l = list_new( l, targets[i], 0 );
+			l.Append(targets[i]);
 
 		var_set( "JAM_TARGETS", l, VAR_SET );
 	}
@@ -407,8 +409,8 @@ int main( int argc, char **argv, char **arg_environ )
 #ifdef OPT_JAM_TARGETS_VARIABLE_EXT
 	/* get value of variable JAM_TARGETS and build the targets */
 	{
-		LIST *l = var_get( "JAM_TARGETS" );
-		int targetCount = list_length(l);
+		StringList l = var_get( "JAM_TARGETS" );
+		int targetCount = l.Size();
 		char **targets;
 		int i;
 
@@ -417,15 +419,14 @@ int main( int argc, char **argv, char **arg_environ )
 			exit( EXITOK );
 		}
 
-		targets = malloc(targetCount * sizeof(char*));
+		targets = (char**)malloc(targetCount * sizeof(char*));
 		if (!targets) {
 			printf( "Memory allocation failed!\n" );
 			exit( EXITBAD );
 		}
 
 		for (i = 0; i < targetCount; i++) {
-			targets[i] = (char*)l->string;
-			l = l->next;
+			targets[i] = const_cast<char*>(l.CStringAt(i));
 		}
 
 		argv = targets;

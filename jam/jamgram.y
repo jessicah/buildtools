@@ -1,24 +1,24 @@
+%token _BANG_t
+%token _BANG_EQUALS_t
+%token _AMPER_t
+%token _AMPERAMPER_t
+%token _LPAREN_t
+%token _RPAREN_t
+%token _PLUS_EQUALS_t
+%token _COLON_t
+%token _SEMIC_t
 %token _LANGLE_t
 %token _LANGLE_EQUALS_t
 %token _EQUALS_t
 %token _RANGLE_t
 %token _RANGLE_EQUALS_t
-%token _BAR_t
-%token _BARBAR_t
-%token _SEMIC_t
-%token _COLON_t
-%token _BANG_t
-%token _BANG_EQUALS_t
 %token _QUESTION_EQUALS_t
-%token _LPAREN_t
-%token _RPAREN_t
 %token _LBRACKET_t
 %token _RBRACKET_t
 %token _LBRACE_t
+%token _BAR_t
+%token _BARBAR_t
 %token _RBRACE_t
-%token _AMPER_t
-%token _AMPERAMPER_t
-%token _PLUS_EQUALS_t
 %token ACTIONS_t
 %token BIND_t
 %token BREAK_t
@@ -95,9 +95,9 @@
 
 # define YYMAXDEPTH 10000	/* for OSF and other less endowed yaccs */
 
-# define F0 (LIST *(*)(PARSE *, LOL *, int *))0
-# define P0 (PARSE *)0
-# define S0 (char *)0
+# define F0 nullptr
+# define P0 nullptr
+# define S0 nullptr
 
 # define pappend( l,r )    	parse_make( compile_append,l,r,P0,S0,S0,0 )
 # define pbreak( l,f )     	parse_make( compile_break,l,P0,P0,S0,S0,f )

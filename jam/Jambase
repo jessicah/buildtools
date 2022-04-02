@@ -226,7 +226,7 @@ if $(NT) {
 	RANLIB		?= ranlib ;
 	STDHDRS		?= /boot/develop/headers/posix ;
 	YACC		?= bison -y ;
-	YACCGEN		?= .c ;
+	YACCGEN		?= .cpp ;
 	YACCFILES	?= y.tab ;
 	YACCFLAGS	?= -d ;
 } else if $(OS) = BEOS {
@@ -244,7 +244,7 @@ if $(NT) {
 	RANLIB		?= ranlib ;
 	STDHDRS		?= /boot/develop/headers/posix ;
 	YACC		?= bison -y ;
-	YACCGEN		?= .c ;
+	YACCGEN		?= .cpp ;
 	YACCFILES	?= y.tab ;
 	YACCFLAGS	?= -d ;
 } else if $(OS) = HAIKU {
@@ -262,7 +262,7 @@ if $(NT) {
 	RANLIB		?= ranlib ;
 	STDHDRS		?= /boot/system/develop/headers/posix ;
 	YACC		?= bison -y ;
-	YACCGEN		?= .c ;
+	YACCGEN		?= .cpp ;
 	YACCFILES	?= y.tab ;
 	YACCFLAGS	?= -d ;
 } else if $(UNIX) {
@@ -306,7 +306,7 @@ if $(NT) {
 	OPTIM		?= ;
 	RANLIB		?= ranlib ;
 	YACC		?= yacc ;
-	YACCGEN		?= .c ;
+	YACCGEN		?= .cpp ;
 	YACCFILES	?= y.tab ;
 	YACCFLAGS	?= -d ;
 }
@@ -1499,7 +1499,7 @@ actions LexMv
 
 actions Link bind NEEDLIBS
 {
-	$(LINK) $(LINKFLAGS) -o $(<) $(UNDEFS) $(>) $(NEEDLIBS) $(LINKLIBS)
+	c++ $(LINKFLAGS) -o $(<) $(UNDEFS) $(>) $(NEEDLIBS) $(LINKLIBS)
 }
 
 actions MkDir1

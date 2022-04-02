@@ -1,14 +1,14 @@
-/* A Bison parser, made by GNU Bison 2.3.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
-/* Skeleton interface for Bison's Yacc-like parsers in C
+/* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
+   Inc.
 
-   This program is free software; you can redistribute it and/or modify
+   This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,9 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -33,84 +31,106 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-/* Tokens.  */
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
+
+#ifndef YY_YY_Y_TAB_H_INCLUDED
+# define YY_YY_Y_TAB_H_INCLUDED
+/* Debug traces.  */
+#ifndef YYDEBUG
+# define YYDEBUG 0
+#endif
+#if YYDEBUG
+extern int yydebug;
+#endif
+
+/* Token kinds.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
-   /* Put the tokens into the symbol table, so that GDB and other debuggers
-      know about them.  */
-   enum yytokentype {
-     _LANGLE_t = 258,
-     _LANGLE_EQUALS_t = 259,
-     _EQUALS_t = 260,
-     _RANGLE_t = 261,
-     _RANGLE_EQUALS_t = 262,
-     _BAR_t = 263,
-     _BARBAR_t = 264,
-     _SEMIC_t = 265,
-     _COLON_t = 266,
-     _BANG_t = 267,
-     _BANG_EQUALS_t = 268,
-     _QUESTION_EQUALS_t = 269,
-     _LPAREN_t = 270,
-     _RPAREN_t = 271,
-     _LBRACKET_t = 272,
-     _RBRACKET_t = 273,
-     _LBRACE_t = 274,
-     _RBRACE_t = 275,
-     _AMPER_t = 276,
-     _AMPERAMPER_t = 277,
-     _PLUS_EQUALS_t = 278,
-     ACTIONS_t = 279,
-     BIND_t = 280,
-     BREAK_t = 281,
-     CASE_t = 282,
-     CONTINUE_t = 283,
-     DEFAULT_t = 284,
-     ELSE_t = 285,
-     EXISTING_t = 286,
-     FOR_t = 287,
-     IF_t = 288,
-     IGNORE_t = 289,
-     IN_t = 290,
-     INCLUDE_t = 291,
-     JUMPTOEOF_t = 292,
-     LOCAL_t = 293,
-     MAXLINE_t = 294,
-     ON_t = 295,
-     PIECEMEAL_t = 296,
-     QUIETLY_t = 297,
-     RETURN_t = 298,
-     RULE_t = 299,
-     SWITCH_t = 300,
-     TOGETHER_t = 301,
-     UPDATED_t = 302,
-     WHILE_t = 303,
-     ARG = 304,
-     STRING = 305
-   };
+  enum yytokentype
+  {
+    YYEMPTY = -2,
+    YYEOF = 0,                     /* "end of file"  */
+    YYerror = 256,                 /* error  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    _BANG_t = 258,                 /* _BANG_t  */
+    _BANG_EQUALS_t = 259,          /* _BANG_EQUALS_t  */
+    _AMPER_t = 260,                /* _AMPER_t  */
+    _AMPERAMPER_t = 261,           /* _AMPERAMPER_t  */
+    _LPAREN_t = 262,               /* _LPAREN_t  */
+    _RPAREN_t = 263,               /* _RPAREN_t  */
+    _PLUS_EQUALS_t = 264,          /* _PLUS_EQUALS_t  */
+    _COLON_t = 265,                /* _COLON_t  */
+    _SEMIC_t = 266,                /* _SEMIC_t  */
+    _LANGLE_t = 267,               /* _LANGLE_t  */
+    _LANGLE_EQUALS_t = 268,        /* _LANGLE_EQUALS_t  */
+    _EQUALS_t = 269,               /* _EQUALS_t  */
+    _RANGLE_t = 270,               /* _RANGLE_t  */
+    _RANGLE_EQUALS_t = 271,        /* _RANGLE_EQUALS_t  */
+    _QUESTION_EQUALS_t = 272,      /* _QUESTION_EQUALS_t  */
+    _LBRACKET_t = 273,             /* _LBRACKET_t  */
+    _RBRACKET_t = 274,             /* _RBRACKET_t  */
+    _LBRACE_t = 275,               /* _LBRACE_t  */
+    _BAR_t = 276,                  /* _BAR_t  */
+    _BARBAR_t = 277,               /* _BARBAR_t  */
+    _RBRACE_t = 278,               /* _RBRACE_t  */
+    ACTIONS_t = 279,               /* ACTIONS_t  */
+    BIND_t = 280,                  /* BIND_t  */
+    BREAK_t = 281,                 /* BREAK_t  */
+    CASE_t = 282,                  /* CASE_t  */
+    CONTINUE_t = 283,              /* CONTINUE_t  */
+    DEFAULT_t = 284,               /* DEFAULT_t  */
+    ELSE_t = 285,                  /* ELSE_t  */
+    EXISTING_t = 286,              /* EXISTING_t  */
+    FOR_t = 287,                   /* FOR_t  */
+    IF_t = 288,                    /* IF_t  */
+    IGNORE_t = 289,                /* IGNORE_t  */
+    IN_t = 290,                    /* IN_t  */
+    INCLUDE_t = 291,               /* INCLUDE_t  */
+    JUMPTOEOF_t = 292,             /* JUMPTOEOF_t  */
+    LOCAL_t = 293,                 /* LOCAL_t  */
+    MAXLINE_t = 294,               /* MAXLINE_t  */
+    ON_t = 295,                    /* ON_t  */
+    PIECEMEAL_t = 296,             /* PIECEMEAL_t  */
+    QUIETLY_t = 297,               /* QUIETLY_t  */
+    RETURN_t = 298,                /* RETURN_t  */
+    RULE_t = 299,                  /* RULE_t  */
+    SWITCH_t = 300,                /* SWITCH_t  */
+    TOGETHER_t = 301,              /* TOGETHER_t  */
+    UPDATED_t = 302,               /* UPDATED_t  */
+    WHILE_t = 303,                 /* WHILE_t  */
+    ARG = 304,                     /* ARG  */
+    STRING = 305                   /* STRING  */
+  };
+  typedef enum yytokentype yytoken_kind_t;
 #endif
-/* Tokens.  */
-#define _LANGLE_t 258
-#define _LANGLE_EQUALS_t 259
-#define _EQUALS_t 260
-#define _RANGLE_t 261
-#define _RANGLE_EQUALS_t 262
-#define _BAR_t 263
-#define _BARBAR_t 264
-#define _SEMIC_t 265
-#define _COLON_t 266
-#define _BANG_t 267
-#define _BANG_EQUALS_t 268
-#define _QUESTION_EQUALS_t 269
-#define _LPAREN_t 270
-#define _RPAREN_t 271
-#define _LBRACKET_t 272
-#define _RBRACKET_t 273
-#define _LBRACE_t 274
-#define _RBRACE_t 275
-#define _AMPER_t 276
-#define _AMPERAMPER_t 277
-#define _PLUS_EQUALS_t 278
+/* Token kinds.  */
+#define YYEMPTY -2
+#define YYEOF 0
+#define YYerror 256
+#define YYUNDEF 257
+#define _BANG_t 258
+#define _BANG_EQUALS_t 259
+#define _AMPER_t 260
+#define _AMPERAMPER_t 261
+#define _LPAREN_t 262
+#define _RPAREN_t 263
+#define _PLUS_EQUALS_t 264
+#define _COLON_t 265
+#define _SEMIC_t 266
+#define _LANGLE_t 267
+#define _LANGLE_EQUALS_t 268
+#define _EQUALS_t 269
+#define _RANGLE_t 270
+#define _RANGLE_EQUALS_t 271
+#define _QUESTION_EQUALS_t 272
+#define _LBRACKET_t 273
+#define _RBRACKET_t 274
+#define _LBRACE_t 275
+#define _BAR_t 276
+#define _BARBAR_t 277
+#define _RBRACE_t 278
 #define ACTIONS_t 279
 #define BIND_t 280
 #define BREAK_t 281
@@ -139,15 +159,18 @@
 #define ARG 304
 #define STRING 305
 
-
-
-
+/* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef int YYSTYPE;
-# define yystype YYSTYPE /* obsolescent; will be withdrawn */
-# define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1
+# define YYSTYPE_IS_DECLARED 1
 #endif
+
 
 extern YYSTYPE yylval;
 
+
+int yyparse (void);
+
+
+#endif /* !YY_YY_Y_TAB_H_INCLUDED  */

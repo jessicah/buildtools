@@ -18,7 +18,7 @@
 typedef struct _PARSE PARSE;
 
 struct _PARSE {
-	LIST		*(*func)( PARSE *p, LOL *args, int *jmp );
+	StringList	(*func)( PARSE *p, LOL *args, int *jmp );
 	PARSE		*left;
 	PARSE		*right;
 	PARSE		*third;
@@ -32,7 +32,7 @@ void 	parse_file( const char *f );
 void 	parse_save( PARSE *p );
 
 PARSE * parse_make( 
-	LIST 		*(*func)( PARSE *p, LOL *args, int *jmp ),
+	StringList 	(*func)( PARSE *p, LOL *args, int *jmp ),
 	PARSE		*left,
 	PARSE		*right,
 	PARSE		*third,

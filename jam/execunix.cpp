@@ -113,7 +113,7 @@ execcmd(
 	char *string,
 	void (*func)( void *closure, int status ),
 	void *closure,
-	LIST *shell )
+	StringList shell )
 {
 	int pid;
 	int slot;
@@ -185,7 +185,7 @@ execcmd(
 	/* If shell was defined, be prepared for % and ! subs. */
 	/* Otherwise, use stock /bin/sh (on unix) or cmd.exe (on NT). */
 
-	if( shell )
+	if( shell.Size() > 0 )
 	{
 	    int i;
 	    char jobno[4];
@@ -193,13 +193,13 @@ execcmd(
 
 	    sprintf( jobno, "%d", slot + 1 );
 
-	    for( i = 0; shell && i < MAXARGC; i++, shell = list_next( shell ) )
+	    for( i = 0; i < shell.Size() && i < MAXARGC; i++ )
 	    {
-		switch( shell->string[0] )
+		switch( shell[i].get()[0] )
 		{
 		case '%':	argv[i] = string; gotpercent++; break;
 		case '!':	argv[i] = jobno; break;
-		default:	argv[i] = shell->string;
+		default:	argv[i] = shell[i].get().c_str();
 		}
 		if( DEBUG_EXECCMD )
 		    printf( "argv[%d] = '%s'\n", i, argv[i] );

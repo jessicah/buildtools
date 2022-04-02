@@ -70,9 +70,9 @@ static void make1c( TARGET *t );
 static void make1d( void *closure, int status );
 
 static CMD *make1cmds( ACTIONS *a0 );
-static LIST *make1list( LIST *l, TARGETS *targets, int flags,
+static StringList make1list( StringList l, TARGETS *targets, int flags,
 	int *missingTargets );
-static SETTINGS *make1settings( LIST *vars );
+static SETTINGS *make1settings( StringList vars );
 static void make1bind( TARGET *t, int warn );
 
 void out_compile_database(
@@ -293,8 +293,7 @@ make1c( TARGET *t )
 		if( DEBUG_MAKEQ || ! ( cmd->rule->flags & RULE_QUIETLY ) )
 	    {
 		printf( "%s ", cmd->rule->name );
-		list_print( lol_get( &cmd->args, 0 ) );
-		printf( "\n" );
+		std::cout << lol_get(&cmd->args, 0) << std::endl;
 	    }
 
 	    if( DEBUG_EXEC )
@@ -306,11 +305,11 @@ make1c( TARGET *t )
 	    if ( globs.comp_db != NULL )
 	    {
 		const char* rule_name = cmd->rule->name;
-		const char* target_name = lol_get( (LOL *)&cmd->args, 0 )->string;
+		const char* target_name = lol_get( (LOL *)&cmd->args, 0 ).CStringAt(0);
 		const char* source_name = NULL;
-		LIST* sources = lol_get( (LOL *)&cmd->args, 1);
-		if (sources != NULL)
-		    source_name = lol_get((LOL *)&cmd->args, 1 )->string;
+		StringList sources = lol_get( (LOL *)&cmd->args, 1);
+		if (!sources.Empty())
+		    source_name = lol_get((LOL *)&cmd->args, 1 ).CStringAt(0);
 		out_compile_database( rule_name, source_name, cmd->buf );
 	    }
 
@@ -393,8 +392,7 @@ make1d(
 		printf( "%s\n", cmd->buf );
 
 	    printf( "...failed %s ", cmd->rule->name );
-	    list_print( lol_get( &cmd->args, 0 ) );
-	    printf( "...\n" );
+		std::cout << lol_get(&cmd->args, 0) << "..." << std::endl;
 
 	    if( globs.quitquick ) ++intr;
 	}
@@ -405,11 +403,11 @@ make1d(
 
 	if( status != EXEC_CMD_OK && !( cmd->rule->flags & RULE_UPDATED ) )
 	{
-	    LIST *targets = lol_get( &cmd->args, 0 );
+	    StringList targets = lol_get( &cmd->args, 0 );
 
-	    for( ; targets; targets = list_next( targets ) )
-		if( !unlink( targets->string ) )
-		    printf( "...removing %s\n", targets->string );
+	    for(size_t offset = 0; offset < targets.Size(); ++offset )
+		if( !unlink( targets.CStringAt(offset) ) )
+		    printf( "...removing %s\n", targets.CStringAt(offset));
 	}
 
 	/* Free this command and call make1c() to move onto next command. */
@@ -436,7 +434,7 @@ static CMD *
 make1cmds( ACTIONS *a0 )
 {
 	CMD *cmds = 0;
-	LIST *shell = var_get( "JAMSHELL" );	/* shell is per-target */
+	StringList shell = var_get( "JAMSHELL" );	/* shell is per-target */
 
 	/* Step through actions */
 	/* Actions may be shared with other targets or grouped with */
@@ -446,7 +444,7 @@ make1cmds( ACTIONS *a0 )
 	{
 	    RULE    *rule = a0->action->rule;
 	    SETTINGS *boundvars;
-	    LIST    *nt, *ns;
+	    //LIST    *nt, *ns;
 	    ACTIONS *a1;
 	    CMD	    *cmd;
 	    int	    start, chunk, length, maxline;
@@ -465,13 +463,13 @@ make1cmds( ACTIONS *a0 )
 	    /* If `execute together` has been specified for this rule, tack */
 	    /* on sources from each instance of this rule for this target. */
 
-	    nt = make1list( L0, a0->action->targets, 0 , &missingTargets );
+	    StringList nt = make1list( {}, a0->action->targets, 0 , &missingTargets );
 
 		/* If a target is missing use all sources. */
 		if (missingTargets)
 			ruleFlags &= ~RULE_UPDATED;
 
-		ns = make1list( L0, a0->action->sources, ruleFlags, NULL );
+		StringList ns = make1list( {}, a0->action->sources, ruleFlags, NULL );
 
 	    if( ruleFlags & RULE_TOGETHER )
 		for( a1 = a0->next; a1; a1 = a1->next )
@@ -484,9 +482,9 @@ make1cmds( ACTIONS *a0 )
 	    /* If doing only updated (or existing) sources, but none have */
 	    /* been updated (or exist), skip this action. */
 
-	    if( !ns && ( ruleFlags & ( RULE_UPDATED | RULE_EXISTING ) ) )
+	    if( !ns.Empty() && ( ruleFlags & ( RULE_UPDATED | RULE_EXISTING ) ) )
 	    {
-		list_free( nt );
+		nt = {};
 		continue;
 	    }
 
@@ -516,7 +514,7 @@ make1cmds( ACTIONS *a0 )
 	     */
 
 	    start = 0;
-	    chunk = length = list_length( ns );
+	    chunk = length = ns.Size();
 	    maxline = ruleFlags / RULE_MAXLINE;
 	    maxline = maxline && maxline < MAXLINE ? maxline : MAXLINE;
 
@@ -525,9 +523,9 @@ make1cmds( ACTIONS *a0 )
 		/* Build cmd: cmd_new consumes its lists. */
 
 		CMD *cmd = cmd_new( rule, 
-			list_copy( L0, nt ), 
-			list_sublist( ns, start, chunk ),
-			list_copy( L0, shell ),
+			nt.Copy(),
+			ns.SubList(start, chunk),
+			shell.Copy(),
 			maxline );
 
 		if( cmd )
@@ -558,8 +556,8 @@ make1cmds( ACTIONS *a0 )
 
 	    /* These were always copied when used. */
 
-	    list_free( nt );
-	    list_free( ns );
+	    nt = {};
+	    ns = {};
 
 	    /* Free the variables whose values were bound by */
 	    /* 'actions xxx bind vars' */
@@ -575,9 +573,9 @@ make1cmds( ACTIONS *a0 )
  * make1list() - turn a list of targets into a LIST, for $(<) and $(>)
  */
 
-static LIST *
+StringList
 make1list( 
-	LIST	*l,
+	StringList l,
 	TARGETS	*targets,
 	int	flags,
 	int *missingTargets )
@@ -607,19 +605,18 @@ make1list(
 
 	if( flags & RULE_TOGETHER )
 	{
-	    LIST *m;
-
-	    for( m = l; m; m = m->next )
-		if( !strcmp( m->string, t->boundname ) )
+		size_t offset = 0;
+		for (offset = 0; offset < l.Size(); ++offset)
+		if( !strcmp( l.CStringAt(offset), t->boundname ) )
 		    break;
 
-	    if( m )
+	    if( offset < l.Size() )
 		continue;
 	}
 
 	/* Build new list */
 
-	l = list_new( l, t->boundname, 1 );
+	l.Append(t->boundname);
     }
 
     return l;
@@ -630,18 +627,18 @@ make1list(
  */
 
 static SETTINGS *
-make1settings( LIST *vars )
+make1settings( StringList vars )
 {
 	SETTINGS *settings = 0;
 
-	for( ; vars; vars = list_next( vars ) )
+	for(size_t offset = 0; offset < vars.Size(); ++offset)
 	{
-	    LIST *l = var_get( vars->string );
-	    LIST *nl = 0;
+	    StringList l = var_get( vars.CStringAt(offset) );
+	    StringList nl = {};
 
-	    for( ; l; l = list_next( l ) ) 
+	    for(size_t lOffset = 0; lOffset < l.Size(); ++lOffset) 
 	    {
-		TARGET *t = bindtarget( l->string );
+		TARGET *t = bindtarget( l.CStringAt(lOffset) );
 
 		/* Make sure the target is bound, warning if it is not in the */
 		/* dependency graph. */
@@ -651,12 +648,12 @@ make1settings( LIST *vars )
 
 		/* Build new list */
 
-		nl = list_new( nl, t->boundname, 1 );
+		nl.Append(t->boundname);
 	    }
 
 	    /* Add to settings chain */
 
-	    settings = addsettings( settings, 0, vars->string, nl );
+	    settings = addsettings( settings, 0, vars.CStringAt(offset), nl );
 	}
 
 	return settings;

@@ -53,8 +53,8 @@ struct _rule {
 	const char	*name;
 	PARSE		*procedure;	/* parse tree from RULE */
 	const char	*actions;	/* command string from ACTIONS */
-	LIST		*bindlist;	/* variable to bind for actions */
-	LIST		*params;	/* bind args to local vars */
+	StringList	bindlist;	/* variable to bind for actions */
+	StringList	params;	/* bind args to local vars */
 	int		flags;		/* modifiers on ACTIONS */
 
 # ifdef OPT_RULE_PROFILING_EXT
@@ -96,7 +96,7 @@ struct _action {
 struct _settings {
 	SETTINGS 	*next;
 	const char	*symbol;	/* symbol name for var_set() */
-	LIST		*value;		/* symbol value for var_set() */
+	StringList		value;		/* symbol value for var_set() */
 } ;
 
 /* TARGETS - a chain of TARGETs */
@@ -178,13 +178,14 @@ RULE 	*bindrule( const char *rulename );
 TARGET *bindtarget( const char *targetname );
 TARGET *copytarget( const TARGET *t );
 void 	touchtarget( const char *t );
-TARGETS *targetlist( TARGETS *chain, LIST  *targets );
+TARGETS *targetlist( TARGETS *chain, StringList targets );
 TARGETS *targetentry( TARGETS *chain, TARGET *target );
 TARGETS *targetchain( TARGETS *chain, TARGETS *targets );
 ACTIONS *actionlist( ACTIONS *chain, ACTION *action );
-SETTINGS *addsettings( SETTINGS *v, int setflag, const char *sym, LIST *val );
+SETTINGS *addsettings( SETTINGS *v, int setflag, const char *sym, StringList val );
 SETTINGS *copysettings( SETTINGS *v );
 void 	pushsettings( SETTINGS *v );
 void 	popsettings( SETTINGS *v );
 void 	freesettings( SETTINGS *v );
 void	donerules();
+void	output_rule(RULE *r);

@@ -14,7 +14,7 @@ void execcmd(
 	char *string,
 	void (*func)( void *closure, int status ),
 	void *closure,
-	LIST *shell );
+	StringList shell );
 
 int execwait();
 

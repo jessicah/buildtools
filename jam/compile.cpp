@@ -96,7 +96,7 @@ int glob( const char *s, const char *c );
  *	parse->right	single rule
  */
 
-LIST *
+StringList
 compile_append(
 	PARSE	*parse,
 	LOL	*args,
@@ -104,9 +104,10 @@ compile_append(
 {
 	/* Append right to left. */
 
-	return list_append( 
-		(*parse->left->func)( parse->left, args, jmp ),
-		(*parse->right->func)( parse->right, args, jmp ) );
+	auto left = (*parse->left->func)( parse->left, args, jmp );
+	auto right = (*parse->right->func)( parse->right, args, jmp );
+	left.AppendList(right);
+	return left;
 }
 
 /*
@@ -116,13 +117,13 @@ compile_append(
  *	parse->num	JMP_BREAK/CONTINUE/RETURN
  */
 
-LIST *
+StringList
 compile_break(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST *lv = (*parse->left->func)( parse->left, args, jmp );
+	StringList lv = (*parse->left->func)( parse->left, args, jmp );
 	*jmp = parse->num;
 	return lv;
 }
@@ -135,44 +136,42 @@ compile_break(
  *	L0	if expression false - compile 'else' clause
  */
 
-static int
-lcmp( LIST *t, LIST *s )
+static bool
+lcmp( StringList t, StringList s )
 {
-	int status = 0;
+	bool status = false;
 
-	while( !status && ( t || s ) )
+	for (size_t offset = 0; !status && offset < t.Size() && offset < s.Size(); ++offset)
 	{
-	    const char *st = t ? t->string : "";
-	    const char *ss = s ? s->string : "";
+	    auto &st = t[offset].get();
+	    auto &ss = s[offset].get();
 
-	    status = strcmp( st, ss );
-
-	    t = t ? list_next( t ) : t;
-	    s = s ? list_next( s ) : s;
+	    status = st == ss;
 	}
 
 	return status;
 }
 
-LIST *
+StringList
 compile_eval(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST *ll, *lr, *s, *t;
-	int status = 0;
+	//LIST *ll, *lr, *s, *t;
+	StringList ll = (*parse->left->func)( parse->left, args, jmp );
+	StringList lr = {};
+	bool status = false;
+	size_t leftOffset = 0;
+	size_t rightOffset = 0;
 
 	/* Short circuit lr eval for &&, ||, and 'in' */
-
-	ll = (*parse->left->func)( parse->left, args, jmp );
-	lr = 0;
 
 	switch( parse->num )
 	{
 	case EXPR_AND: 
-	case EXPR_IN: 	if( ll ) goto eval; break;
-	case EXPR_OR: 	if( !ll ) goto eval; break;
+	case EXPR_IN: 	if( ll.Size() > 0 ) goto eval; break;
+	case EXPR_OR: 	if( ll.Size() == 0 ) goto eval; break;
 	default: eval: 	lr = (*parse->right->func)( parse->right, args, jmp );
 	}
 
@@ -181,66 +180,64 @@ compile_eval(
 	switch( parse->num )
 	{
 	case EXPR_NOT:	
-		if( !ll ) status = 1;
+		if( ll.Size() == 0 ) status = true;
 		break;
 
 	case EXPR_AND:
-		if( ll && lr ) status = 1;
+		if( ll.Size() > 0 && lr.Size() > 0 ) status = true;
 		break;
 
 	case EXPR_OR:
-		if( ll || lr ) status = 1;
+		if( ll.Size() > 0 || lr.Size() > 0 ) status = true;
 		break;
 
 	case EXPR_IN:
 		/* "a in b": make sure each of */
 		/* ll is equal to something in lr. */
 
-		for( t = ll; t; t = list_next( t ) )
+		for ( ; leftOffset < ll.Size(); ++leftOffset)
+		//for( t = ll; t; t = list_next( t ) )
 		{
-		    for( s = lr; s; s = list_next( s ) )
-			if( !strcmp( t->string, s->string ) )
+			for ( ; rightOffset < lr.Size(); ++rightOffset)
+		    //for( s = lr; s; s = list_next( s ) )
+			if( ll[leftOffset].get() == lr[rightOffset].get())
+			//if (!strcmp( t->string, s->string ) )
 			    break;
-		    if( !s ) break;
+		    //if( s == nullptr ) break;
+			if (rightOffset == lr.Size())
+				break;
 		}
 
 		/* No more ll? Success */
 
-		if( !t ) status = 1;
+		if( leftOffset == ll.Size()) status = true;
 
 		break;
 
-	case EXPR_EXISTS:       if( lcmp( ll, L0 ) != 0 ) status = 1; break;
-	case EXPR_EQUALS:	if( lcmp( ll, lr ) == 0 ) status = 1; break;
-	case EXPR_NOTEQ:	if( lcmp( ll, lr ) != 0 ) status = 1; break;
-	case EXPR_LESS:		if( lcmp( ll, lr ) < 0  ) status = 1; break;
-	case EXPR_LESSEQ:	if( lcmp( ll, lr ) <= 0 ) status = 1; break;
-	case EXPR_MORE:		if( lcmp( ll, lr ) > 0  ) status = 1; break;
-	case EXPR_MOREEQ:	if( lcmp( ll, lr ) >= 0 ) status = 1; break;
+	case EXPR_EXISTS:       if( lcmp( ll, {} ) != 0 ) status = true; break;
+	case EXPR_EQUALS:	if( lcmp( ll, lr ) == 0 ) status = true; break;
+	case EXPR_NOTEQ:	if( lcmp( ll, lr ) != 0 ) status = true; break;
+	case EXPR_LESS:		if( lcmp( ll, lr ) < 0  ) status = true; break;
+	case EXPR_LESSEQ:	if( lcmp( ll, lr ) <= 0 ) status = true; break;
+	case EXPR_MORE:		if( lcmp( ll, lr ) > 0  ) status = true; break;
+	case EXPR_MOREEQ:	if( lcmp( ll, lr ) >= 0 ) status = true; break;
 
 	}
 
 	if( DEBUG_IF )
 	{
 	    debug_compile( 0, "if" );
-	    list_print( ll );
-	    printf( "(%d) ", status );
-	    list_print( lr );
-	    printf( "\n" );
+	    std::cout << ll << "(" << status << ")" << lr << std::endl;
 	}
 
 	/* Find something to return. */
 	/* In odd circumstances (like "" = "") */
 	/* we'll have to return a new string. */
 
-	if( !status ) t = 0;
-	else if( ll ) t = ll, ll = 0;
-	else if( lr ) t = lr, lr = 0;
-	else t = list_new( L0, "1", 0 );
-
-	if( ll ) list_free( ll );
-	if( lr ) list_free( lr );
-	return t;
+	if( status == false ) return {};
+	else if( ll.Size() > 0 ) return ll;
+	else if( lr.Size() > 0 ) return lr;
+	else return StringList("1");
 }
 
 /*
@@ -254,27 +251,25 @@ compile_eval(
  *	parse->right	rule to compile
  */
 
-LIST *
+StringList
 compile_foreach(
 	PARSE	*p,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST	*nv = (*p->left->func)( p->left, args, jmp );
-	LIST	*result = 0;
-	LIST	*l;
+	StringList nv = (*p->left->func)( p->left, args, jmp );
+	StringList result = {};
 
 	/* for each value for var */
 
-	for( l = nv; l && *jmp == JMP_NONE; l = list_next( l ) )
+	for( size_t offset = 0; offset < nv.Size() && *jmp == JMP_NONE; ++offset )
 	{
 	    /* Reset $(p->string) for each val. */
 
-	    var_set( p->string, list_new( L0, l->string, 1 ), VAR_SET );
+	    var_set( p->string, StringList(nv[offset].get()), VAR_SET );
 
 	    /* Keep only last result. */
 
-	    list_free( result );
 	    result = (*p->right->func)( p->right, args, jmp );
 
 	    /* continue loop? */
@@ -287,8 +282,6 @@ compile_foreach(
 
 	if( *jmp == JMP_BREAK || *jmp == JMP_CONTINUE )
 	    *jmp = JMP_NONE;
-
-	list_free( nv );
 
 	/* Returns result of last loop */
 
@@ -303,17 +296,15 @@ compile_foreach(
  *	parse->third		else tree
  */
 
-LIST *
+StringList
 compile_if(
 	PARSE	*p,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST *l = (*p->left->func)( p->left, args, jmp );
+	StringList l = (*p->left->func)( p->left, args, jmp );
 
-	p = l ? p->right : p->third;
-
-	list_free( l );
+	p = l.Size() > 0 ? p->right : p->third;
 
 	return (*p->func)( p, args, jmp );
 }
@@ -324,24 +315,23 @@ compile_if(
  * 	parse->left	list of files to include (can only do 1)
  */
 
-LIST *
+StringList
 compile_include(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST	*nt = (*parse->left->func)( parse->left, args, jmp );
+	StringList nt = (*parse->left->func)( parse->left, args, jmp );
 
 	if( DEBUG_COMPILE )
 	{
 	    debug_compile( 0, "include" );
-	    list_print( nt );
-	    printf( "\n" );
+		std::cout << nt << std::endl;
 	}
 
-	if( nt )
+	if( nt.Size() > 0 )
 	{
-	    TARGET *t = bindtarget( nt->string );
+	    TARGET *t = bindtarget( nt[0].get().c_str() );
 
 	    /* Bind the include file under the influence of */
 	    /* "on-target" variables.  Though they are targets, */
@@ -358,9 +348,7 @@ compile_include(
 		parse_file( t->boundname );
 	}
 
-	list_free( nt );
-
-	return L0;
+	return {};
 }
 
 /*
@@ -369,7 +357,7 @@ compile_include(
  * 	parse->string - character string to expand
  */
 
-LIST *
+StringList
 compile_list(
 	PARSE	*parse,
 	LOL	*args,
@@ -377,7 +365,7 @@ compile_list(
 {
 	/* voodoo 1 means: s is a copyable string */
 	const char *s = parse->string;
-	return var_expand( L0, s, s + strlen( s ), args, 1 );
+	return var_expand( {}, s, s + strlen( s ), args, 1 );
 }
 
 /*
@@ -388,34 +376,27 @@ compile_list(
  *	parse->third	rules to execute
  */
 
-LIST *
+StringList
 compile_local(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST *l;
 	SETTINGS *s = 0;
-	LIST	*nt = (*parse->left->func)( parse->left, args, jmp );
-	LIST	*ns = (*parse->right->func)( parse->right, args, jmp );
-	LIST	*result;
+	StringList nt = (*parse->left->func)( parse->left, args, jmp );
+	StringList ns = (*parse->right->func)( parse->right, args, jmp );
+	StringList result = {};
 
 	if( DEBUG_COMPILE )
 	{
 	    debug_compile( 0, "local" );
-	    list_print( nt );
-	    printf( " = " );
-	    list_print( ns );
-	    printf( "\n" );
+		std::cout << nt << " = " << ns << std::endl;
 	}
 
 	/* Initial value is ns */
 
-	for( l = nt; l; l = list_next( l ) )
-	    s = addsettings( s, 0, l->string, list_copy( (LIST*)0, ns ) );
-
-	list_free( ns );
-	list_free( nt );
+	for(size_t offset = 0; offset < nt.Size(); ++offset)
+		s = addsettings( s, 0, nt[offset].get().c_str(), ns.SubList(0, ns.Size()) );
 
 	/* Note that callees of the current context get this "local" */
 	/* variable, making it not so much local as layered. */
@@ -432,13 +413,13 @@ compile_local(
  * compile_null() - do nothing -- a stub for parsing
  */
 
-LIST *
+StringList
 compile_null(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	return L0;
+	return {};
 }
 
 /*
@@ -448,20 +429,19 @@ compile_null(
  *	parse->right	rule to run
  */
 
-LIST *
+StringList
 compile_on(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST	*nt = (*parse->left->func)( parse->left, args, jmp );
-	LIST	*result = 0;
+	StringList nt = (*parse->left->func)( parse->left, args, jmp );
+	StringList result = {};
 
 	if( DEBUG_COMPILE )
 	{
 	    debug_compile( 0, "on" );
-	    list_print( nt );
-	    printf( "\n" );
+		std::cout << nt << std::endl;
 	}
 
 	/* 
@@ -469,9 +449,9 @@ compile_on(
 	 * doesn't set var globally.
 	 */
 
-	if( nt )
+	if( nt.Size() > 0 )
 	{
-	    TARGET *t = bindtarget( nt->string );
+	    TARGET *t = bindtarget( nt[0].get().c_str() );
 	    SETTINGS *s = copysettings( t->settings );
 
 	    pushsettings( s );
@@ -479,8 +459,6 @@ compile_on(
 	    popsettings( s );
 	    freesettings( s );
 	}
-
-	list_free( nt );
 
 	return result;
 }
@@ -494,21 +472,19 @@ compile_on(
  * Wrapped around evaluate_rule() so that headers() can share it.
  */
 
-LIST *
+StringList
 compile_rule(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
 	LOL	nargs[1];
-	LIST	*result = 0;
-	LIST	*ll, *l;
+	StringList result = {};
 	PARSE	*p;
 
 	/* list of rules to run -- normally 1! */
-
-	ll = (*parse->left->func)( parse->left, args, jmp );
-
+	StringList ll = (*parse->left->func)( parse->left, args, jmp );
+	
 	/* Build up the list of arg lists */
 
 	lol_init( nargs );
@@ -518,10 +494,10 @@ compile_rule(
 
 	/* Run rules, appending results from each */
 
-	for( l = ll; l; l = list_next( l ) )
+	for (size_t offset = 0; offset < ll.Size(); ++offset)
 	{
 	    int localJmp = JMP_NONE;
-	    result = evaluate_rule( l->string, nargs, result, &localJmp );
+	    result = evaluate_rule( ll[offset].get().c_str(), nargs, result, &localJmp );
 	    if (localJmp == JMP_EOF)
 	    {
 			*jmp = JMP_EOF;
@@ -529,7 +505,6 @@ compile_rule(
 	    }
 	}
 
-	list_free( ll );
 	lol_free( nargs );
 
 	return result;
@@ -539,21 +514,25 @@ compile_rule(
  * evaluate_rule() - execute a rule invocation
  */
 
-LIST *
+StringList
 evaluate_rule(
 	const char *rulename,
 	LOL	*args, 
-	LIST	*result,
+	StringList result,
 	int	*jmp )
 {
 	RULE	*rule = bindrule( rulename );
 
-	if( DEBUG_COMPILE )
+	if( 0 )
 	{
 	    debug_compile( 1, rulename );
 	    lol_print( args );
 	    printf( "\n" );
 	}
+
+	//printf("EVALUATE RULE: %s\n", rulename);
+	//lol_print(args);
+	//printf("\n\n");
 
 	/* Check traditional targets $(<) and sources $(>) */
 
@@ -584,6 +563,7 @@ evaluate_rule(
 	    if( action->targets )
 	    {
 	    	TARGET *t0 = action->targets->target;
+			std::cout << "build " << t0->name << ": " << rulename << " " << lol_get(args, 1) << std::endl << std::endl;
 	    	for( t = action->targets->next; t; t = t->next )
 	    	{
 	    		TARGET *tn = t->target;
@@ -593,6 +573,12 @@ evaluate_rule(
 	    		}
 	    		tn = tn->includes;
 	    		tn->depends = targetentry( tn->depends, t0 );
+
+				// additional outputs for a rule, other than the main
+				// target
+				// ninja understands multiple outputs, so we should do that,
+				// e.g. build <t0> <t1 ...tN>: <rule> <inputs...>
+				printf("TARGET: %s\n", tn->name);
 	    	}
 	    }
 
@@ -608,9 +594,7 @@ evaluate_rule(
 	{
 	    PARSE *parse = rule->procedure;
 	    SETTINGS *s = 0;
-	    LIST *l;
-	    int i;
-
+	    
 # ifdef OPT_RULE_PROFILING_EXT
 		struct timeval startTime, endTime;
 
@@ -619,10 +603,9 @@ evaluate_rule(
 # endif
 
 	    /* build parameters as local vars */
-
-	    for( l = rule->params, i = 0; l; l = l->next, i++ )
-		s = addsettings( s, 0, l->string, 
-		    list_copy( L0, lol_get( args, i ) ) );
+		for(size_t offset = 0; offset < rule->params.Size(); ++offset)
+		s = addsettings( s, 0, rule->params[offset].get().c_str(), 
+			lol_get(args, offset).SubList(0, lol_get(args, offset).Size()));
 
 	    /* Run rule. */
 	    /* Bring in local params. */
@@ -630,9 +613,9 @@ evaluate_rule(
 
 	    parse_refer( parse );
 
-	    pushsettings( s );
-	    result = list_append( result, (*parse->func)( parse, args, jmp ) );
-	    popsettings( s );
+		pushsettings( s );
+	    result.AppendList((*parse->func)( parse, args, jmp ));
+		popsettings( s );
 	    freesettings( s );
 
 	    parse_free( parse );
@@ -651,7 +634,7 @@ evaluate_rule(
 
 	}
 
-	if( DEBUG_COMPILE )
+	if( 0 )
 	    debug_compile( -1, 0 );
 
 	return result;
@@ -664,7 +647,7 @@ evaluate_rule(
  *	parse->right	more compile_rules() by right-recursion
  */
 
-LIST *
+StringList
 compile_rules(
 	PARSE	*parse,
 	LOL	*args,
@@ -673,18 +656,16 @@ compile_rules(
 	/* Ignore result from first statement; return the 2nd. */
 	/* Optimize recursion on the right by looping. */
 
-	LIST 	*result = 0;
+	StringList result = {};
 
 	while( *jmp == JMP_NONE && parse->func == compile_rules )
 	{
-	    list_free( result );
 	    result = (*parse->left->func)( parse->left, args, jmp );
 	    parse = parse->right;
 	}
 
 	if( *jmp == JMP_NONE )
 	{
-	    list_free( result );
 	    result = (*parse->func)( parse, args, jmp );
 	}
 
@@ -699,32 +680,26 @@ compile_rules(
  *	parse->num	VAR_SET/APPEND/DEFAULT
  */
 
-LIST *
+StringList
 compile_set(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST	*nt = (*parse->left->func)( parse->left, args, jmp );
-	LIST	*ns = (*parse->right->func)( parse->right, args, jmp );
-	LIST	*l;
+	StringList nt = (*parse->left->func)( parse->left, args, jmp );
+	StringList ns = (*parse->right->func)( parse->right, args, jmp );
 
 	if( DEBUG_COMPILE )
 	{
 	    debug_compile( 0, "set" );
-	    list_print( nt );
-	    printf( " %s ", set_names[ parse->num ] );
-	    list_print( ns );
-	    printf( "\n" );
+		std::cout << nt << " " << set_names[parse->num] << " " << ns << std::endl;
 	}
 
 	/* Call var_set to set variable */
 	/* var_set keeps ns, so need to copy it */
 
-	for( l = nt; l; l = list_next( l ) )
-	    var_set( l->string, list_copy( L0, ns ), parse->num );
-
-	list_free( nt );
+	for (size_t offset = 0; offset < nt.Size(); ++offset)
+	    var_set( nt[offset].get().c_str(), ns.SubList(0, ns.Size()), parse->num );
 
 	return ns;
 }
@@ -737,36 +712,31 @@ compile_set(
  *	parse->right	rules for rule
  */
 
-LIST *
+StringList
 compile_setcomp(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
 	RULE	*rule = bindrule( parse->string );
-	LIST	*params = 0;
+	StringList params = {};
 	PARSE	*p;
 
 	/* Build param list */
 
 	for( p = parse->left; p; p = p->left )
-	    params = list_new( params, p->string, 1 );
+		params.Append(p->string);
 
 	if( DEBUG_COMPILE )
 	{
 	    debug_compile( 0, "rule" );
-	    printf( "%s ", parse->string );
-	    list_print( params );
-	    printf( "\n" );
+		std::cout << parse->string << " " << params << std::endl;
 	}
 
 	/* Free old one, if present */
 
 	if( rule->procedure )
 	    parse_free( rule->procedure );
-
-	if( rule->params )
-	    list_free( rule->params );
 
 	rule->procedure = parse->right;
 	rule->params = params;
@@ -776,8 +746,9 @@ compile_setcomp(
 
 	parse_refer( parse->right );
 
-	return L0;
+	return {};
 }
+
 
 /*
  * compile_setexec() - support for `actions` - save execution string 
@@ -791,28 +762,29 @@ compile_setcomp(
  * directly to the rule flags (as defined in rules.h).
  */
 
-LIST *
+StringList
 compile_setexec(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
 	RULE	*rule = bindrule( parse->string );
-	LIST	*bindlist = (*parse->left->func)( parse->left, args, jmp );
+	StringList bindlist = (*parse->left->func)( parse->left, args, jmp );
 	
 	/* Free old one, if present */
 
 	if( rule->actions )
 	{
 	    freestr( rule->actions );
-	    list_free( rule->bindlist );
 	}
 
 	rule->actions = copystr( parse->string1 );
 	rule->bindlist = bindlist;
 	rule->flags = parse->num;
 
-	return L0;
+	output_rule(rule);
+
+	return {};
 }
 
 /*
@@ -824,44 +796,34 @@ compile_setexec(
  *	parse->num	VAR_SET/APPEND/DEFAULT
  */
 
-LIST *
+StringList
 compile_settings(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST	*nt = (*parse->left->func)( parse->left, args, jmp );
-	LIST	*ns = (*parse->third->func)( parse->third, args, jmp );
-	LIST	*targets = (*parse->right->func)( parse->right, args, jmp );
-	LIST	*ts;
+	StringList nt = (*parse->left->func)( parse->left, args, jmp );
+	StringList ns = (*parse->third->func)( parse->third, args, jmp );
+	StringList targets = (*parse->right->func)( parse->right, args, jmp );
 
 	if( DEBUG_COMPILE )
 	{
 	    debug_compile( 0, "set" );
-	    list_print( nt );
-	    printf( "on " );
-	    list_print( targets );
-	    printf( " %s ", set_names[ parse->num ] );
-	    list_print( ns );
-	    printf( "\n" );
+		std::cout << nt << " on " << targets << " " << set_names[parse->num] << " " << ns << std::endl;
 	}
 
 	/* Call addsettings to save variable setting */
 	/* addsettings keeps ns, so need to copy it */
 	/* Pass append flag to addsettings() */
 
-	for( ts = targets; ts; ts = list_next( ts ) )
+	for(size_t offset = 0; offset < targets.Size(); ++offset)
 	{
-	    TARGET 	*t = bindtarget( ts->string );
-	    LIST	*l;
+	    TARGET 	*t = bindtarget( targets[offset].get().c_str() );
 
-	    for( l = nt; l; l = list_next( l ) )
+		for (size_t ntOffset = 0; ntOffset < nt.Size(); ++ntOffset)
 		t->settings = addsettings( t->settings, parse->num,
-				l->string, list_copy( (LIST*)0, ns ) );
+				nt[ntOffset].get().c_str(), ns.SubList(0, ns.Size()) );
 	}
-
-	list_free( nt );
-	list_free( targets );
 
 	return ns;
 }
@@ -879,19 +841,19 @@ compile_settings(
  *	case->left	parse tree to execute
  */
 
-LIST *
+StringList
 compile_switch(
 	PARSE	*parse,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST	*nt = (*parse->left->func)( parse->left, args, jmp );
-	LIST	*result = 0;
+	StringList nt = (*parse->left->func)( parse->left, args, jmp );
+	StringList result = {};
 
 	if( DEBUG_COMPILE )
 	{
 	    debug_compile( 0, "switch" );
-	    list_print( nt );
+		std::cout << nt << std::endl;
 	    printf( "\n" );
 	}
 
@@ -899,7 +861,7 @@ compile_switch(
 
 	for( parse = parse->right; parse; parse = parse->right )
 	{
-	    if( !glob( parse->left->string, nt ? nt->string : "" ) )
+	    if( !glob( parse->left->string, nt.Size() > 0 ? nt[0].get().c_str() : "" ) )
 	    {
 		/* Get & exec parse tree for this case */
 		parse = parse->left->left;
@@ -907,8 +869,6 @@ compile_switch(
 		break;
 	    }
 	}
-
-	list_free( nt );
 
 	return result;
 }
@@ -920,27 +880,27 @@ compile_switch(
  *	parse->right		execution tree
  */
 
-LIST *
+StringList
 compile_while(
 	PARSE	*p,
 	LOL	*args,
 	int	*jmp )
 {
-	LIST *result = 0;
-	LIST *l;
+	StringList result = {};
+	StringList l = {};
 
 	/* Returns the value from the last execution of the block */
 
 	while( ( *jmp == JMP_NONE ) && 
-	       ( l = (*p->left->func)( p->left, args, jmp ) ) )
+	       ( l = (*p->left->func)( p->left, args, jmp ) ).Size() > 0 )
 	{
 	    /* Always toss while's expression */
 
-	    list_free( l );
+	    //list_free( l );
 
 	    /* Keep only last result. */
 
-	    list_free( result );
+	    //list_free( result );
 	    result = (*p->right->func)( p->right, args, jmp );
 
 	    /* continue loop? */

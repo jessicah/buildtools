@@ -48,11 +48,11 @@ typedef struct _variable VARIABLE ;
 
 struct _variable {
 	const char	*symbol;
-	LIST		*value;
+	StringList value;
 } ;
 
 static VARIABLE *var_enter( const char *symbol );
-static void var_dump( const char *symbol, LIST *value, const char *what );
+static void var_dump( const char *symbol, const StringList &value, const char *what );
 
 
 
@@ -85,7 +85,7 @@ var_defines( const char **e )
 	    if( val = strchr( *e, '=' ) )
 # endif
 	    {
-		LIST *l = L0;
+		StringList l = {};
 		const char *pp, *p;
 # ifdef OS_MAC
 		char split = ',';
@@ -110,10 +110,10 @@ var_defines( const char **e )
 		{
 		    strncpy( buf, pp, p - pp );
 		    buf[ p - pp ] = '\0';
-		    l = list_new( l, buf, 0 );
+		    l.Append(buf);
 		}
 
-		l = list_new( l, pp, 0 );
+		l.Append(pp);
 
 		/* Get name */
 
@@ -180,27 +180,27 @@ var_string(
 
 	    if( dollar )
 	    {
-		LIST *l = var_expand( L0, lastword, out, lol, 0 );
+		StringList l = var_expand( {}, lastword, out, lol, 0 );
 
 		out = lastword;
 
-		while( l )
+		size_t offset = 0;
+		while( offset < l.Size() )
 		{
-		    int so = strlen( l->string );
+		    int so = l.StringAt(offset).size();;
 
 		    if( out + so >= oute )
 			return -1;
 
-		    strcpy( out, l->string );
+		    strcpy( out, l.CStringAt(offset) );
 		    out += so;
 
 		    /* Separate with space */
 
-		    if( l = list_next( l ) )
+		    if( ++offset < l.Size() )
 			*out++ = ' ';
 		}
 
-		list_free( l );
 	    }
 	}
 
@@ -218,7 +218,7 @@ var_string(
  * Returns NULL if symbol unset.
  */
 
-LIST *
+StringList
 var_get( const char *symbol )
 {
 	VARIABLE var, *v = &var;
@@ -232,7 +232,7 @@ var_get( const char *symbol )
 	    return v->value;
 	}
     
-	return 0;
+	return {};
 }
 
 /*
@@ -249,7 +249,7 @@ var_get( const char *symbol )
 void
 var_set(
 	const char *symbol,
-	LIST	*value,
+	StringList value,
 	int	flag )
 {
 	VARIABLE *v = var_enter( symbol );
@@ -261,21 +261,18 @@ var_set(
 	{
 	case VAR_SET:
 	    /* Replace value */
-	    list_free( v->value );
 	    v->value = value;
 	    break;
 
 	case VAR_APPEND:
 	    /* Append value */
-	    v->value = list_append( v->value, value );
+	    v->value.AppendList(value);
 	    break;
 
 	case VAR_DEFAULT:
 	    /* Set only if unset */
-	    if( !v->value )
+	    if( !v->value.Empty() )
 		v->value = value;
-	    else
-		list_free( value );
 	    break;
 	}
 }
@@ -284,13 +281,13 @@ var_set(
  * var_swap() - swap a variable's value with the given one
  */
 
-LIST *
+StringList
 var_swap(
 	const char *symbol,
-	LIST	*value )
+	StringList value )
 {
 	VARIABLE *v = var_enter( symbol );
-	LIST 	 *oldvalue = v->value;
+	StringList oldvalue = v->value;
 
 	if( DEBUG_VARSET )
 	    var_dump( symbol, value, "set" );
@@ -315,7 +312,7 @@ var_enter( const char *symbol )
 	    varhash = hashinit( sizeof( VARIABLE ), "variables" );
 
 	v->symbol = symbol;
-	v->value = 0;
+	v->value = {};
 
 	if( hashenter( varhash, (HASHDATA **)&v ) )
 	    v->symbol = newstr( symbol );	/* never freed */
@@ -330,12 +327,11 @@ var_enter( const char *symbol )
 static void
 var_dump(
 	const char	*symbol,
-	LIST		*value,
+	const StringList &value,
 	const char	*what )
 {
 	printf( "%s %s = ", what, symbol );
-	list_print( value );
-	printf( "\n" );
+	std::cout << value << std::endl;
 }
 
 /*

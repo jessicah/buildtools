@@ -66,10 +66,10 @@ bindrule( const char *rulename )
 	if( hashenter( rulehash, (HASHDATA **)&r ) )
 	{
 	    r->name = newstr( rulename );	/* never freed */
-	    r->procedure = (PARSE *)0;
-	    r->actions = (char *)0;
-	    r->bindlist = L0;
-	    r->params = L0;
+	    r->procedure = nullptr;
+	    r->actions = nullptr;
+	    r->bindlist = {};
+	    r->params = {};
 	    r->flags = 0;
 
 # ifdef OPT_RULE_PROFILING_EXT
@@ -152,10 +152,10 @@ touchtarget( const char *t )
 TARGETS *
 targetlist( 
 	TARGETS	*chain,
-	LIST 	*targets )
+	StringList targets )
 {
-	for( ; targets; targets = list_next( targets ) )
-	    chain = targetentry( chain, bindtarget( targets->string ) );
+	for(size_t offset = 0; offset < targets.Size(); ++offset)
+	    chain = targetentry( chain, bindtarget( targets.CStringAt(offset) ) );
 
 	return chain;
 }
@@ -247,7 +247,7 @@ addsettings(
 	SETTINGS *head,
 	int	setflag,
 	const char *symbol,
-	LIST	*value )
+	StringList value )
 {
 	SETTINGS *v;
 	
@@ -273,18 +273,17 @@ addsettings(
 	{
 	case VAR_SET:
 	    /* Toss old, set new */
-	    list_free( v->value );
 	    v->value = value;
 	    break;
 
 	case VAR_APPEND:
 	    /* Append new to old */
-	    v->value = list_append( v->value, value );
+	    v->value.AppendList(value);
 	    break;
 
 	case VAR_DEFAULT:
 	    /* Toss new, old already set */
-	    list_free( value );
+	    value = {};
 	    break;
 	}
 
@@ -317,7 +316,7 @@ copysettings( SETTINGS *from )
 	{
 	    SETTINGS *v = (SETTINGS *)malloc( sizeof( *v ) );
 	    v->symbol = copystr( from->symbol );
-	    v->value = list_copy( 0, from->value );
+	    v->value = from->value.Copy();
 	    v->next = head;
 	    head = v;
 	}
@@ -358,7 +357,7 @@ freesettings( SETTINGS *v )
 	    SETTINGS *n = v->next;
 
 	    freestr( v->symbol );
-	    list_free( v->value );
+	    //list_free( v->value );
 	    free( (char *)v );
 
 	    v = n;
